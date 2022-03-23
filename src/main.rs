@@ -84,14 +84,13 @@ impl Client {
         };
         self.connections
             .insert(String::from(addr), Connection::Open(server));
-        // we can be absolutely sure that this connection is in the hashmap,
-        // don't we
+        // we can be absolutely sure that this connection is in the hashmap
         let server = match self.connections.get_mut(addr) {
             Some(Connection::Open(s)) => s,
             _ => panic!(),
         };
 
-        // what should i do in case a handshake is rejected? fuck all i guess
+        // what should i do in case a handshake is rejected?
         let _response = server.receive(Message {
             msg_type: MessageType::Handshake,
             load: self.ip.clone(),
@@ -171,12 +170,11 @@ impl Server {
     // Upon receiving a GET request, the server should respond
     // with the GetCount response containing the number of received POST requests.
     fn receive(&mut self, msg: Message) -> CommsResult<Response> {
-        eprintln!("{} received: \"{}\"", self.name, msg.content());
+        eprintln!("{} received:\n{}", self.name, msg.content());
         let connected = self.connected_client.is_some();
 
         match msg.msg_type {
             MessageType::Handshake if !connected => {
-                eprintln!("good handshake innit");
                 self.connected_client = Some(msg.load);
                 Ok(Response::HandshakeReceived)
             }
