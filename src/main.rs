@@ -57,8 +57,8 @@ enum Connection {
 }
 
 impl Connection {
-    fn is_closed(&self) -> bool {
-        matches!(self, &Self::Closed)
+    fn is_open(&self) -> bool {
+        matches!(self, &Self::Open(_))
     }
 }
 
@@ -80,25 +80,21 @@ impl Client {
     // The client should send a handshake to the server.
     fn open(&mut self, addr: &str, server: Server) -> CommsResult<()> {
         if self.is_open(addr) {
-            Err(CommsError::ConnectionExists(String::from(addr)))
+            Err(CommsError::ConnectionExists(addr.to_string()))
         } else {
             self.connections
-                .insert(String::from(addr), Connection::Open(server));
+                .insert(addr.to_string(), Connection::Open(server));
 
-            // we can be absolutely sure that this connection is in the hashmap
-            // is there a better way to get the value we have just added?
-            let server = match self.connections.get_mut(addr) {
-                Some(Connection::Open(s)) => s,
-                _ => panic!(),
-            };
-
-            // what should i do in case a handshake is rejected?
-            let _response = server.receive(Message {
+            // why not use the send fn if we already have it
+            let handshake = Message {
                 msg_type: MessageType::Handshake,
                 load: self.ip.clone(),
-            });
+            };
 
-            Ok(())
+            match self.send(addr, handshake) {
+                Ok(_) => Ok(()),
+                Err(err) => Err(err), // sadly you cannot do err => err
+            }
         }
     }
 
@@ -118,8 +114,10 @@ impl Client {
         };
 
         let response = server.receive(msg);
+
         match &response {
             Err(CommsError::ServerLimitReached(_)) => {
+                // hitting the server limit should close the connection
                 self.connections
                     .insert(addr.to_string(), Connection::Closed);
                 response
@@ -138,7 +136,7 @@ impl Client {
     // Returns the number of closed connections
     #[allow(dead_code)]
     fn count_closed(&self) -> usize {
-        self.connections.values().filter(|&v| v.is_closed()).count()
+        self.connections.values().filter(|&v| !v.is_open()).count()
     }
 }
 
