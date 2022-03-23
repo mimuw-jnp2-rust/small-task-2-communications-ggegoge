@@ -58,10 +58,7 @@ enum Connection {
 
 impl Connection {
     fn is_closed(&self) -> bool {
-        match &self {
-            &Self::Closed => true,
-            _ => false,
-        }
+        matches!(self, &Self::Closed)
     }
 }
 
@@ -97,7 +94,7 @@ impl Client {
         // what should i do in case a handshake is rejected? fuck all i guess
         let _response = server.receive(Message {
             msg_type: MessageType::Handshake,
-            load: String::from(self.ip.clone()),
+            load: self.ip.clone(),
         });
 
         Ok(())
@@ -133,10 +130,7 @@ impl Client {
     // the `Open` status.
     #[allow(dead_code)]
     fn is_open(&self, addr: &str) -> bool {
-        match self.connections.get(addr) {
-            Some(Connection::Open(_)) => true,
-            _ => false,
-        }
+        matches!(self.connections.get(addr), Some(Connection::Open(_)))
     }
 
     // Returns the number of closed connections
@@ -178,11 +172,7 @@ impl Server {
     // with the GetCount response containing the number of received POST requests.
     fn receive(&mut self, msg: Message) -> CommsResult<Response> {
         eprintln!("{} received: \"{}\"", self.name, msg.content());
-        let connected = if let Some(_) = &self.connected_client {
-            true
-        } else {
-            false
-        };
+        let connected = self.connected_client.is_some();
 
         match msg.msg_type {
             MessageType::Handshake if !connected => {
