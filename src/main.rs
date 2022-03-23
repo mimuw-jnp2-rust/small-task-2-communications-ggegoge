@@ -80,23 +80,26 @@ impl Client {
     // The client should send a handshake to the server.
     fn open(&mut self, addr: &str, server: Server) -> CommsResult<()> {
         if self.is_open(addr) {
-            return Err(CommsError::ConnectionExists(String::from(addr)));
-        };
-        self.connections
-            .insert(String::from(addr), Connection::Open(server));
-        // we can be absolutely sure that this connection is in the hashmap
-        let server = match self.connections.get_mut(addr) {
-            Some(Connection::Open(s)) => s,
-            _ => panic!(),
-        };
+            Err(CommsError::ConnectionExists(String::from(addr)))
+        } else {
+            self.connections
+                .insert(String::from(addr), Connection::Open(server));
 
-        // what should i do in case a handshake is rejected?
-        let _response = server.receive(Message {
-            msg_type: MessageType::Handshake,
-            load: self.ip.clone(),
-        });
+            // we can be absolutely sure that this connection is in the hashmap
+            // is there a better way to get the value we have just added?
+            let server = match self.connections.get_mut(addr) {
+                Some(Connection::Open(s)) => s,
+                _ => panic!(),
+            };
 
-        Ok(())
+            // what should i do in case a handshake is rejected?
+            let _response = server.receive(Message {
+                msg_type: MessageType::Handshake,
+                load: self.ip.clone(),
+            });
+
+            Ok(())
+        }
     }
 
     // Sends the provided message to the server at the given `addr`.
