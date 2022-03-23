@@ -60,7 +60,7 @@ impl Connection {
     fn is_closed(&self) -> bool {
         match &self {
             &Self::Closed => true,
-            _ => false
+            _ => false,
         }
     }
 }
@@ -121,10 +121,11 @@ impl Client {
         let response = server.receive(msg);
         match &response {
             Err(CommsError::ServerLimitReached(_)) => {
-                self.connections.insert(addr.to_string(), Connection::Closed);
+                self.connections
+                    .insert(addr.to_string(), Connection::Closed);
                 response
-            },
-            _ => response
+            }
+            _ => response,
         }
     }
 
@@ -188,10 +189,8 @@ impl Server {
                 eprintln!("good handshake innit");
                 self.connected_client = Some(msg.load);
                 Ok(Response::HandshakeReceived)
-            },
-            MessageType::Handshake => {
-                Err(CommsError::UnexpectedHandshake(self.name.clone()))
-            },
+            }
+            MessageType::Handshake => Err(CommsError::UnexpectedHandshake(self.name.clone())),
             MessageType::GetCount => Ok(Response::GetCount(self.post_count)),
             MessageType::Post if self.post_count < self.limit => {
                 self.post_count += 1;
